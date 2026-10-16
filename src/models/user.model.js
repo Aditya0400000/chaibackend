@@ -47,12 +47,12 @@ const userSchema = new Schema(
         }      
     },
     {
-        timesetamps: true
+        timestamps: true
     }
 )
 
 userSchema.pre("save", async function () {
-    if(!this.isModified("password")) return next();
+    if(!this.isModified("password")) return;
 
     this.password = await bcrypt.hash(this.password, 10)
 })
@@ -71,21 +71,32 @@ userSchema.methods.generateAccessToken = function(){
         },
         process.env.ACCESS_TOKEN_SECRET,
         {
-            expiresIn: process.env.ACCESS_TOKEN_EPIRY
+            expiresIn: process.env.ACCESS_TOKEN_EXPIRY
         }
     )
 }
-userSchema.method.generateRefreshToken = function(){
-     return jwt.sign(
+
+userSchema.methods.generateRefreshToken = function () {
+    const expiry = process.env.REFRESH_TOKEN_EXPIRY;
+
+    console.log("Refresh token expiry:", expiry);
+
+    if (!expiry) {
+        throw new Error(
+            "REFRESH_TOKEN_EXPIRY is missing in .env"
+        );
+    }
+
+    return jwt.sign(
         {
-            _id: this._id,
-            
+            _id: this._id
         },
         process.env.REFRESH_TOKEN_SECRET,
         {
-            expiresIn: process.env.REFRESH_TOKEN_EPIRY
+            expiresIn: expiry
         }
-    )
-}
+    );
+};
+
 
 export const User = mongoose.model("User", userSchema)
